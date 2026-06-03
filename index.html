@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Лабораторный дашборд</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#f5f5f3;color:#1a1a1a;padding:1.5rem}
+h1{font-size:18px;font-weight:500;color:#1a1a1a;margin-bottom:4px}
+.subtitle{font-size:13px;color:#888;margin-bottom:1.5rem}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:1.25rem}
+.ctrl-btn{padding:6px 14px;font-size:13px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#555;cursor:pointer;transition:all 0.15s}
+.ctrl-btn:hover{border-color:#aaa;color:#222}
+.ctrl-btn.active{background:#1a1a1a;color:#fff;border-color:#1a1a1a}
+.section-title{font-size:11px;font-weight:500;color:#888;margin-bottom:10px;letter-spacing:0.06em;text-transform:uppercase}
+.tbl-wrap{overflow-x:auto;width:100%;border-radius:10px;border:1px solid #e5e5e5;background:#fff}
+table{border-collapse:collapse;width:100%;min-width:400px}
+th{font-size:11px;font-weight:500;color:#666;text-align:center;padding:8px 6px;border-bottom:1px solid #eee;border-right:1px solid #eee;background:#fafafa;white-space:nowrap}
+th.marker-head{text-align:left;padding-left:12px;min-width:150px;position:sticky;left:0;z-index:2;background:#fafafa}
+td{text-align:center;padding:4px 4px;border-bottom:1px solid #f0f0f0;border-right:1px solid #f0f0f0;vertical-align:middle}
+td:last-child,th:last-child{border-right:none}
+tr:last-child td{border-bottom:none}
+td.marker-cell{text-align:left;padding:6px 12px;font-size:12px;color:#1a1a1a;white-space:nowrap;position:sticky;left:0;z-index:1;background:#fff;border-right:1px solid #eee}
+td.marker-cell span{font-size:10px;color:#aaa;display:block}
+.pill{display:inline-flex;align-items:center;justify-content:center;border-radius:6px;padding:4px 6px;font-size:11px;font-weight:500;min-width:40px;cursor:default;line-height:1.2}
+.pill.norm{background:#d5f5e3;color:#1d6a39}
+.pill.bad{background:#fadbd8;color:#922b21}
+.pill.empty{background:#f5f5f3;color:#ccc;font-size:11px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:1rem;font-size:12px;color:#888}
+.leg-item{display:flex;align-items:center;gap:6px}
+.leg-dot{width:11px;height:11px;border-radius:3px}
+.tip{position:fixed;background:#fff;border:1px solid #e5e5e5;border-radius:8px;padding:8px 12px;font-size:12px;color:#1a1a1a;pointer-events:none;z-index:100;display:none;max-width:200px;line-height:1.6;box-shadow:0 4px 12px rgba(0,0,0,0.08)}
+.tip strong{display:block;margin-bottom:2px}
+.empty-msg{color:#aaa;font-size:13px;padding:2rem}
+.updated{font-size:11px;color:#bbb;margin-top:1.5rem}
+</style>
+</head>
+<body>
+
+<h1>Лабораторный мониторинг</h1>
+<p class="subtitle">Динамика показателей по категориям</p>
+
+<div class="controls" id="grpBtns"></div>
+<div id="chartArea"></div>
+
+<div class="legend">
+  <div class="leg-item"><div class="leg-dot" style="background:#d5f5e3"></div>норма</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#fadbd8"></div>отклонение</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#f5f5f3;border:1px solid #eee"></div>нет данных</div>
+</div>
+
+<p class="updated" id="updatedAt"></p>
+
+<div class="tip" id="tip"></div>
+
+<script>
+const RAW = [
+  {date:"11.07.2021",marker:"Ферритин",value:13,unit:"нг/мл",status:"снижен",cat:"Анемия"},
+  {date:"10.01.2024",marker:"Ферритин",value:10,unit:"нг/мл",status:"снижен",cat:"Анемия"},
+  {date:"11.06.2016",marker:"HOMA-IR",value:3.3,unit:"",status:"повышен",cat:"Метаболизм"},
+  {date:"30.10.2019",marker:"HOMA-IR",value:5.3,unit:"",status:"повышен",cat:"Метаболизм"},
+  {date:"08.02.2023",marker:"hsCRP",value:14.9,unit:"мг/л",status:"повышен",cat:"Ревматология"},
+  {date:"15.03.2023",marker:"hsCRP",value:11,unit:"мг/л",status:"повышен",cat:"Ревматология"},
+  {date:"27.04.2023",marker:"hsCRP",value:16.1,unit:"мг/л",status:"повышен",cat:"Ревматология"},
+  {date:"31.05.2023",marker:"hsCRP",value:32.2,unit:"мг/л",status:"повышен",cat:"Ревматология"},
+  {date:"10.01.2024",marker:"hsCRP",value:22.4,unit:"мг/л",status:"повышен",cat:"Ревматология"},
+  {date:"14.08.2016",marker:"Инсулин",value:14.8,unit:"мкМЕ/мл",status:"повышен",cat:"Метаболизм"},
+  {date:"30.10.2019",marker:"Инсулин",value:22.8,unit:"мкМЕ/мл",status:"повышен",cat:"Метаболизм"},
+  {date:"23.04.2017",marker:"LDL",value:109,unit:"мг/дл",status:"норма",cat:"Кардио"},
+  {date:"20.03.2020",marker:"LDL",value:132,unit:"мг/дл",status:"повышен",cat:"Кардио"},
+  {date:"17.07.2022",marker:"LDL",value:148,unit:"мг/дл",status:"повышен",cat:"Кардио"},
+  {date:"08.02.2023",marker:"Лимфоциты %",value:29.1,unit:"%",status:"норма",cat:"Анемия"},
+  {date:"15.03.2023",marker:"Лимфоциты %",value:28.6,unit:"%",status:"норма",cat:"Анемия"},
+  {date:"27.04.2023",marker:"Лимфоциты %",value:25.2,unit:"%",status:"норма",cat:"Анемия"},
+  {date:"31.05.2023",marker:"Лимфоциты %",value:26.6,unit:"%",status:"норма",cat:"Анемия"},
+  {date:"09.01.2024",marker:"Лимфоциты %",value:16,unit:"%",status:"снижен",cat:"Анемия"},
+  {date:"08.02.2023",marker:"MCH",value:23.7,unit:"пг",status:"снижен",cat:"Анемия"},
+  {date:"15.03.2023",marker:"MCH",value:23,unit:"пг",status:"снижен",cat:"Анемия"},
+  {date:"27.04.2023",marker:"MCH",value:22.4,unit:"пг",status:"снижен",cat:"Анемия"},
+  {date:"31.05.2023",marker:"MCH",value:22.5,unit:"пг",status:"снижен",cat:"Анемия"},
+  {date:"09.01.2024",marker:"MCH",value:22.7,unit:"пг",status:"снижен",cat:"Анемия"},
+  {date:"08.02.2023",marker:"MCV",value:76.3,unit:"фл",status:"снижен",cat:"Анемия"},
+  {date:"15.03.2023",marker:"MCV",value:75.5,unit:"фл",status:"снижен",cat:"Анемия"},
+  {date:"27.04.2023",marker:"MCV",value:74.5,unit:"фл",status:"снижен",cat:"Анемия"},
+  {date:"31.05.2023",marker:"MCV",value:74.4,unit:"фл",status:"снижен",cat:"Анемия"},
+  {date:"09.01.2024",marker:"MCV",value:70.2,unit:"фл",status:"снижен",cat:"Анемия"},
+  {date:"08.02.2023",marker:"Нейтрофилы %",value:61.7,unit:"%",status:"норма",cat:"Анемия"},
+  {date:"15.03.2023",marker:"Нейтрофилы %",value:63.6,unit:"%",status:"норма",cat:"Анемия"},
+  {date:"27.04.2023",marker:"Нейтрофилы %",value:66.3,unit:"%",status:"норма",cat:"Анемия"},
+  {date:"31.05.2023",marker:"Нейтрофилы %",value:65.2,unit:"%",status:"норма",cat:"Анемия"},
+  {date:"09.01.2024",marker:"Нейтрофилы %",value:77.7,unit:"%",status:"повышен",cat:"Анемия"},
+  {date:"08.02.2023",marker:"RDW",value:16.3,unit:"%",status:"повышен",cat:"Анемия"},
+  {date:"15.03.2023",marker:"RDW",value:16,unit:"%",status:"повышен",cat:"Анемия"},
+  {date:"27.04.2023",marker:"RDW",value:17,unit:"%",status:"повышен",cat:"Анемия"},
+  {date:"31.05.2023",marker:"RDW",value:16.3,unit:"%",status:"повышен",cat:"Анемия"},
+  {date:"09.01.2024",marker:"RDW",value:17.1,unit:"%",status:"повышен",cat:"Анемия"},
+  {date:"23.04.2017",marker:"Билирубин общий",value:0.4,unit:"мкмоль/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"27.08.2019",marker:"Билирубин общий",value:0.2,unit:"мкмоль/л",status:"снижен",cat:"Общий мониторинг"},
+  {date:"09.02.2020",marker:"Билирубин общий",value:0.2,unit:"мкмоль/л",status:"снижен",cat:"Общий мониторинг"},
+  {date:"28.03.2020",marker:"Билирубин общий",value:0.3,unit:"мкмоль/л",status:"снижен",cat:"Общий мониторинг"},
+  {date:"30.10.2019",marker:"Холестерин общий",value:166,unit:"мг/дл",status:"норма",cat:"Кардио"},
+  {date:"09.02.2020",marker:"Холестерин общий",value:181,unit:"мг/дл",status:"норма",cat:"Кардио"},
+  {date:"28.03.2020",marker:"Холестерин общий",value:179,unit:"мг/дл",status:"норма",cat:"Кардио"},
+  {date:"11.07.2021",marker:"Холестерин общий",value:199,unit:"мг/дл",status:"норма",cat:"Кардио"},
+  {date:"17.07.2022",marker:"Холестерин общий",value:208,unit:"мг/дл",status:"повышен",cat:"Кардио"},
+  {date:"08.02.2023",marker:"WBC (лейкоциты)",value:7.8,unit:"×10⁹/л",status:"норма",cat:"Анемия"},
+  {date:"15.03.2023",marker:"WBC (лейкоциты)",value:7.7,unit:"×10⁹/л",status:"норма",cat:"Анемия"},
+  {date:"27.04.2023",marker:"WBC (лейкоциты)",value:10.5,unit:"×10⁹/л",status:"норма",cat:"Анемия"},
+  {date:"31.05.2023",marker:"WBC (лейкоциты)",value:10.1,unit:"×10⁹/л",status:"норма",cat:"Анемия"},
+  {date:"09.01.2024",marker:"WBC (лейкоциты)",value:13.5,unit:"×10⁹/л",status:"повышен",cat:"Анемия"},
+  {date:"01.08.2019",marker:"Кортизол утренний",value:11.1,unit:"нмоль/л",status:"норма",cat:"Метаболизм"},
+  {date:"30.10.2019",marker:"Глюкоза натощак",value:94,unit:"мг/дл",status:"норма",cat:"Метаболизм"},
+  {date:"01.08.2020",marker:"Глюкоза натощак",value:84,unit:"мг/дл",status:"норма",cat:"Метаболизм"},
+  {date:"11.07.2021",marker:"Глюкоза натощак",value:100,unit:"мг/дл",status:"повышен",cat:"Метаболизм"},
+  {date:"31.05.2023",marker:"Глюкоза натощак",value:92,unit:"мг/дл",status:"норма",cat:"Метаболизм"},
+  {date:"23.04.2017",marker:"HDL",value:53,unit:"мг/дл",status:"норма",cat:"Кардио"},
+  {date:"31.10.2019",marker:"HDL",value:56,unit:"мг/дл",status:"норма",cat:"Кардио"},
+  {date:"17.07.2022",marker:"HDL",value:51,unit:"мг/дл",status:"норма",cat:"Кардио"},
+  {date:"23.04.2017",marker:"Non-HDL",value:124,unit:"мг/дл",status:"норма",cat:"Кардио"},
+  {date:"20.03.2020",marker:"Витамин D (25-OH)",value:31,unit:"нг/мл",status:"норма",cat:"Общий мониторинг"},
+  {date:"12.11.2022",marker:"ALT",value:17,unit:"Ед/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"08.02.2023",marker:"ALT",value:23,unit:"Ед/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"15.03.2023",marker:"ALT",value:28,unit:"Ед/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"27.04.2023",marker:"ALT",value:55,unit:"Ед/л",status:"повышен",cat:"Общий мониторинг"},
+  {date:"31.05.2023",marker:"ALT",value:25,unit:"Ед/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"23.04.2017",marker:"Альбумин",value:4.1,unit:"г/дл",status:"норма",cat:"Общий мониторинг"},
+];
+
+function parseDate(s){const[d,m,y]=s.split('.');return new Date(+y,+m-1,+d);}
+const CATS=["Анемия","Ревматология","Метаболизм","Кардио","Общий мониторинг"];
+const tip=document.getElementById('tip');
+
+function statusClass(s){
+  const c=(s||'').trim().toLowerCase();
+  if(c==='норма') return 'norm';
+  if(!c||c==='-') return 'empty';
+  return 'bad';
+}
+
+function renderCat(cat){
+  const area=document.getElementById('chartArea');
+  area.innerHTML='';
+  const rows=RAW.filter(r=>r.cat===cat);
+  if(!rows.length){area.innerHTML='<div class="empty-msg">Нет данных</div>';return;}
+
+  const title=document.createElement('div');
+  title.className='section-title';
+  title.textContent=cat;
+  area.appendChild(title);
+
+  const dates=[...new Set(rows.map(r=>r.date))].sort((a,b)=>parseDate(a)-parseDate(b));
+  const markers=[...new Set(rows.map(r=>r.marker))];
+  const lookup={};
+  rows.forEach(r=>{if(!lookup[r.marker])lookup[r.marker]={};lookup[r.marker][r.date]=r;});
+
+  const wrap=document.createElement('div');
+  wrap.className='tbl-wrap';
+  const table=document.createElement('table');
+
+  const thead=document.createElement('thead');
+  const hrow=document.createElement('tr');
+  const th0=document.createElement('th');
+  th0.className='marker-head';
+  th0.textContent='Показатель';
+  hrow.appendChild(th0);
+  dates.forEach(d=>{
+    const th=document.createElement('th');
+    const[dd,mm,yyyy]=d.split('.');
+    th.innerHTML=`${dd}.${mm}<br><span style="font-weight:400;color:#bbb">${yyyy}</span>`;
+    hrow.appendChild(th);
+  });
+  thead.appendChild(hrow);
+  table.appendChild(thead);
+
+  const tbody=document.createElement('tbody');
+  markers.forEach(marker=>{
+    const tr=document.createElement('tr');
+    const unit=rows.find(r=>r.marker===marker)?.unit||'';
+    const td0=document.createElement('td');
+    td0.className='marker-cell';
+    td0.innerHTML=`${marker}<span>${unit}</span>`;
+    tr.appendChild(td0);
+    dates.forEach(d=>{
+      const td=document.createElement('td');
+      const r=lookup[marker]?.[d];
+      const pill=document.createElement('span');
+      if(r){
+        const sc=statusClass(r.status);
+        pill.className=`pill ${sc}`;
+        pill.textContent=r.value;
+        pill.addEventListener('mouseenter',()=>{
+          tip.style.display='block';
+          const stLabel={'norm':'норма','bad':(r.status||'').trim(),'empty':'—'}[sc];
+          tip.innerHTML=`<strong>${marker}</strong>${r.date}<br>${r.value}${unit?' '+unit:''} · ${stLabel}`;
+        });
+        pill.addEventListener('mousemove',e=>{tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY-44)+'px';});
+        pill.addEventListener('mouseleave',()=>{tip.style.display='none';});
+      } else {
+        pill.className='pill empty';
+        pill.textContent='—';
+      }
+      td.appendChild(pill);
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+  table.appendChild(tbody);
+  wrap.appendChild(table);
+  area.appendChild(wrap);
+}
+
+const grpBtns=document.getElementById('grpBtns');
+CATS.forEach((cat,i)=>{
+  const btn=document.createElement('button');
+  btn.className='ctrl-btn'+(i===0?' active':'');
+  btn.textContent=cat;
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.ctrl-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderCat(cat);
+  });
+  grpBtns.appendChild(btn);
+});
+
+renderCat(CATS[0]);
+document.getElementById('updatedAt').textContent='Обновлено: ' + new Date().toLocaleDateString('ru-RU');
+</script>
+</body>
+</html>
