@@ -25,6 +25,7 @@ td.marker-cell{text-align:left;padding:6px 12px;font-size:12px;color:#1a1a1a;whi
 td.marker-cell span{font-size:10px;color:#aaa;display:block}
 .pill{display:inline-flex;align-items:center;justify-content:center;border-radius:6px;padding:4px 6px;font-size:11px;font-weight:500;min-width:40px;cursor:default;line-height:1.2}
 .pill.norm{background:#d5f5e3;color:#1d6a39}
+.pill.border{background:#d6e9f8;color:#1b5e8a}
 .pill.bad{background:#fadbd8;color:#922b21}
 .pill.empty{background:#f5f5f3;color:#ccc}
 .legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:1rem;font-size:12px;color:#888}
@@ -43,6 +44,7 @@ td.marker-cell span{font-size:10px;color:#aaa;display:block}
 <div id="chartArea"></div>
 <div class="legend">
   <div class="leg-item"><div class="leg-dot" style="background:#d5f5e3"></div>норма</div>
+  <div class="leg-item"><div class="leg-dot" style="background:#d6e9f8"></div>пограничный</div>
   <div class="leg-item"><div class="leg-dot" style="background:#fadbd8"></div>отклонение</div>
   <div class="leg-item"><div class="leg-dot" style="background:#f5f5f3;border:1px solid #eee"></div>нет данных</div>
 </div>
@@ -61,9 +63,9 @@ const RAW = [
   {date:"10.01.2024",marker:"hsCRP",value:22.4,unit:"мг/л",status:"повышен",cat:"Ревматология"},
   {date:"14.08.2016",marker:"Инсулин",value:14.8,unit:"мкМЕ/мл",status:"повышен",cat:"Метаболизм"},
   {date:"30.10.2019",marker:"Инсулин",value:22.8,unit:"мкМЕ/мл",status:"повышен",cat:"Метаболизм"},
-  {date:"23.04.2017",marker:"LDL",value:109.0,unit:"ммоль/л",status:"норма",cat:"Кардио"},
-  {date:"20.03.2020",marker:"LDL",value:132.0,unit:"ммоль/л",status:"повышен",cat:"Кардио"},
-  {date:"17.07.2022",marker:"LDL",value:148.0,unit:"ммоль/л",status:"повышен",cat:"Кардио"},
+  {date:"23.04.2017",marker:"LDL",value:109.0,unit:"мг/дл",status:"норма",cat:"Кардио"},
+  {date:"20.03.2020",marker:"LDL",value:132.0,unit:"мг/дл",status:"повышен",cat:"Кардио"},
+  {date:"17.07.2022",marker:"LDL",value:148.0,unit:"мг/дл",status:"повышен",cat:"Кардио"},
   {date:"08.02.2023",marker:"Лимфоциты %",value:29.1,unit:"%",status:"норма",cat:"Общий мониторинг"},
   {date:"15.03.2023",marker:"Лимфоциты %",value:28.6,unit:"%",status:"норма",cat:"Общий мониторинг"},
   {date:"27.04.2023",marker:"Лимфоциты %",value:25.2,unit:"%",status:"норма",cat:"Общий мониторинг"},
@@ -199,14 +201,80 @@ const RAW = [
   {date:"23.04.2017",marker:"Триглицериды",value:86.0,unit:"мг/дл",status:"норма",cat:"Кардио"},
   {date:"20.03.2020",marker:"Триглицериды",value:109.0,unit:"мг/дл",status:"норма",cat:"Кардио"},
   {date:"17.07.2022",marker:"Триглицериды",value:93.0,unit:"мг/дл",status:"норма",cat:"Кардио"},
-  {date:"07.01.2020",marker:"B12",value:423.0,unit:"пг/мл",status:"норма",cat:"Общий мониторинг"}
+  {date:"07.01.2020",marker:"B12",value:423.0,unit:"пг/мл",status:"норма",cat:"Общий мониторинг"},
+  // --- Фитнес: реальные цифры из текущего трекинга (Whoop / RENPHO) ---
+  {date:"22.09.2026",marker:"VO2max",value:16,unit:"мл/кг/мин",status:"снижен",cat:"Фитнес"},
+  {date:"22.09.2026",marker:"Шаги/день (среднее)",value:5000,unit:"шагов",status:"снижен",cat:"Фитнес"},
+  {date:"12.09.2026",marker:"Lean mass (безжировая масса)",value:40.6,unit:"%",status:"снижен",cat:"Фитнес"},
+  {date:"12.09.2026",marker:"Висцеральный жир",value:20,unit:"",status:"повышен",cat:"Фитнес"},
+  // --- Зрение: пример-заглушка, замени на реальные данные ---
+  {date:"01.01.2026",marker:"ВГД (пример)",value:22,unit:"мм рт.ст.",status:"пограничный",cat:"Зрение"},
+  {date:"01.01.2026",marker:"Острота зрения (пример)",value:"-1.5",unit:"дптр",status:"норма",cat:"Зрение"},
+  // --- Скрининги: пример-заглушка, замени на реальные данные ---
+  {date:"01.01.2026",marker:"Маммография (пример)",value:"не сделано",unit:"",status:"повышен",cat:"Скрининги"},
+  {date:"01.01.2026",marker:"Колоноскопия (пример)",value:"не сделано",unit:"",status:"пограничный",cat:"Скрининги"},
+  // === Свежие анализы 03.10.2026, CITILAB Белград ===
+  // Анемия
+  {date:"03.10.2026",marker:"Ферритин",value:3.3,unit:"нг/мл",status:"снижен",cat:"Анемия"},
+  {date:"03.10.2026",marker:"Гемоглобин",value:10.0,unit:"г/дл",status:"снижен",cat:"Анемия"}, // конвертировано из 100 г/л
+  {date:"03.10.2026",marker:"Гематокрит",value:32,unit:"%",status:"снижен",cat:"Анемия"},
+  {date:"03.10.2026",marker:"MCV",value:66.9,unit:"фл",status:"снижен",cat:"Анемия"},
+  {date:"03.10.2026",marker:"MCH",value:20.6,unit:"пг",status:"снижен",cat:"Анемия"},
+  {date:"03.10.2026",marker:"MCHC",value:30.8,unit:"г/дл",status:"снижен",cat:"Анемия"}, // конвертировано из 308 г/л
+  {date:"03.10.2026",marker:"MPV",value:8.9,unit:"фл",status:"норма",cat:"Анемия"},
+  // Метаболизм / эндокринология
+  {date:"03.10.2026",marker:"Глюкоза натощак",value:94.6,unit:"мг/дл",status:"норма",cat:"Метаболизм"}, // конвертировано из 5.25 ммоль/л
+  {date:"03.10.2026",marker:"HbA1c",value:5.1,unit:"%",status:"норма",cat:"Метаболизм"},
+  {date:"03.10.2026",marker:"Инсулин",value:11.0,unit:"мкМЕ/мл",status:"норма",cat:"Метаболизм"},
+  {date:"03.10.2026",marker:"HOMA-IR",value:2.57,unit:"",status:"пограничный",cat:"Метаболизм"}, // расчётно: (глюкоза×инсулин)/22.5, лаборатория не считала напрямую
+  {date:"03.10.2026",marker:"ТТГ",value:2.740,unit:"мМЕ/л",status:"норма",cat:"Метаболизм"},
+  {date:"03.10.2026",marker:"Свободный Т4",value:9.42,unit:"пмоль/л",status:"снижен",cat:"Метаболизм"},
+  {date:"03.10.2026",marker:"Антитела к ТПО",value:1.1,unit:"МЕ/мл",status:"норма",cat:"Метаболизм"},
+  {date:"03.10.2026",marker:"Антитела к тиреоглобулину",value:2.4,unit:"МЕ/мл",status:"норма",cat:"Метаболизм"},
+  {date:"03.10.2026",marker:"Кальцитонин",value:0.30,unit:"пг/мл",status:"норма",cat:"Метаболизм"},
+  {date:"03.10.2026",marker:"АКТГ",value:26.9,unit:"пг/мл",status:"норма",cat:"Метаболизм"},
+  {date:"03.10.2026",marker:"Кортизол утренний",value:466.63,unit:"нмоль/л",status:"норма",cat:"Метаболизм"},
+  // Ревматология
+  {date:"03.10.2026",marker:"hsCRP",value:9.30,unit:"мг/л",status:"повышен",cat:"Ревматология"},
+  {date:"03.10.2026",marker:"СОЭ",value:28,unit:"мм/ч",status:"повышен",cat:"Ревматология"},
+  // Кардио
+  {date:"03.10.2026",marker:"Холестерин общий",value:252.5,unit:"мг/дл",status:"повышен",cat:"Кардио"}, // конвертировано из 6.53 ммоль/л
+  {date:"03.10.2026",marker:"LDL",value:163.6,unit:"мг/дл",status:"повышен",cat:"Кардио"}, // конвертировано из 4.23 ммоль/л
+  {date:"03.10.2026",marker:"HDL",value:68.1,unit:"мг/дл",status:"норма",cat:"Кардио"}, // конвертировано из 1.76 ммоль/л
+  {date:"03.10.2026",marker:"Non-HDL",value:184.4,unit:"мг/дл",status:"повышен",cat:"Кардио"}, // расчётно: общий холестерин − HDL
+  {date:"03.10.2026",marker:"Триглицериды",value:104.5,unit:"мг/дл",status:"норма",cat:"Кардио"}, // конвертировано из 1.18 ммоль/л
+  {date:"03.10.2026",marker:"Индекс атеросклероза",value:2.4,unit:"",status:"норма",cat:"Кардио"},
+  {date:"03.10.2026",marker:"Фактор риска (атерогенность)",value:3.7,unit:"",status:"норма",cat:"Кардио"},
+  // Общий мониторинг
+  {date:"03.10.2026",marker:"WBC (лейкоциты)",value:6.79,unit:"×10⁹/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"Нейтрофилы %",value:61.6,unit:"%",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"Лимфоциты %",value:29.1,unit:"%",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"Моноциты %",value:5.10,unit:"%",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"Эозинофилы %",value:3.9,unit:"%",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"Базофилы %",value:0.3,unit:"%",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"RBC (эритроциты)",value:4.84,unit:"×10¹²/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"RDW",value:16.7,unit:"%",status:"повышен",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"Тромбоциты",value:276,unit:"×10⁹/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"ALT",value:16,unit:"Ед/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"AST",value:21,unit:"Ед/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"Креатинин",value:0.76,unit:"мг/дл",status:"норма",cat:"Общий мониторинг"}, // конвертировано из 67.0 мкмоль/л
+  {date:"03.10.2026",marker:"Мочевина (BUN)",value:14.6,unit:"мг/дл",status:"норма",cat:"Общий мониторинг"}, // конвертировано из 5.23 ммоль/л мочевины
+  {date:"03.10.2026",marker:"Мочевая кислота",value:242,unit:"мкмоль/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"Натрий",value:135.0,unit:"ммоль/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"Калий",value:4.37,unit:"ммоль/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"Хлориды",value:100.6,unit:"ммоль/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"Кальций общий",value:2.46,unit:"ммоль/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"Амилаза панкреатическая",value:34,unit:"Ед/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"Липаза",value:29,unit:"Ед/л",status:"норма",cat:"Общий мониторинг"},
+  {date:"03.10.2026",marker:"Витамин D (25-OH)",value:9.9,unit:"нг/мл",status:"снижен",cat:"Общий мониторинг"} // конвертировано из 24.7 нмоль/л
 ];
 function parseDate(s){const[d,m,y]=s.split('.');return new Date(+y,+m-1,+d);}
-const CATS=["Анемия", "Метаболизм", "Ревматология", "Кардио", "Общий мониторинг"];
+const CATS=["Анемия", "Метаболизм", "Ревматология", "Кардио", "Общий мониторинг", "Фитнес", "Зрение", "Скрининги"];
 const tip=document.getElementById('tip');
 function statusClass(s){
   const c=(s||'').trim().toLowerCase();
   if(c==='норма') return 'norm';
+  if(c==='пограничный'||c==='погранично') return 'border';
   if(!c||c==='-') return 'empty';
   return 'bad';
 }
@@ -258,7 +326,7 @@ function renderCat(cat){
         pill.textContent=r.value;
         pill.addEventListener('mouseenter',()=>{
           tip.style.display='block';
-          const stLabel={'norm':'норма','bad':(r.status||'').trim(),'empty':'—'}[sc];
+          const stLabel={'norm':'норма','border':(r.status||'').trim(),'bad':(r.status||'').trim(),'empty':'—'}[sc];
           tip.innerHTML=`<strong>${marker}</strong>${r.date}<br>${r.value}${unit?' '+unit:''} · ${stLabel}`;
         });
         pill.addEventListener('mousemove',e=>{tip.style.left=(e.clientX+14)+'px';tip.style.top=(e.clientY-44)+'px';});
